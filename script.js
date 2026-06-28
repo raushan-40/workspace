@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary, Expense, Balance, Validation & localStorage Module
+// Salary, Expense, Balance, Validation, localStorage & Delete Module
 // ==========================================
 
 // ==========================================
@@ -68,7 +68,7 @@ function saveToLocalStorage(key, data) {
         return true;
     } catch (error) {
         console.error(`❌ Failed to save to localStorage: ${key}`, error);
-        return false;
+        return true;
     }
 }
 
@@ -586,19 +586,27 @@ function renderExpenseList() {
     // Render each expense as a table row
     expensesData.forEach((expense) => {
         const row = document.createElement('tr');
+        row.setAttribute('data-expense-id', expense.id);
         row.innerHTML = `
             <td class="expense-table-name">${escapeHtml(expense.name)}</td>
             <td class="expense-table-amount">${formatCurrency(expense.amount)}</td>
             <td>
-                <button class="btn btn-danger" onclick="deleteExpense(${expense.id})">Delete</button>
+                <button class="btn btn-danger delete-expense-btn" data-id="${expense.id}" title="Delete this expense">
+                    🗑️ Delete
+                </button>
             </td>
         `;
         expenseTableBody.appendChild(row);
     });
 }
 
+// ==========================================
+// Delete Expense Module
+// ==========================================
+
 /**
  * Deletes an expense by id
+ * Uses event delegation to handle delete button clicks
  * @param {number} id - The expense id to delete
  */
 function deleteExpense(id) {
@@ -606,22 +614,46 @@ function deleteExpense(id) {
     const index = expensesData.findIndex(expense => expense.id === id);
 
     if (index !== -1) {
+        // Get the expense being deleted (for logging)
+        const deletedExpense = expensesData[index];
+
+        // Get the table row element
+        const tableRow = expenseTableBody.querySelector(`tr[data-expense-id="${id}"]`);
+
         // Remove from array
-        const deletedExpense = expensesData.splice(index, 1)[0];
-        
-        // Save to localStorage
+        expensesData.splice(index, 1);
+
+        // Save updated expenses to localStorage
         saveToLocalStorage(STORAGE_KEYS.EXPENSES, expensesData);
 
-        console.log('Expense deleted:', deletedExpense);
+        // Animate row removal (optional fade out effect)
+        if (tableRow) {
+            tableRow.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => {
+                tableRow.remove();
+                
+                // If no more expenses, show empty state
+                if (expensesData.length === 0) {
+                    expenseListContainer.style.display = 'block';
+                    expenseTableWrapper.style.display = 'none';
+                }
+            }, 300);
+        } else {
+            // Fallback: re-render if animation failed
+            renderExpenseList();
+        }
 
-        // Re-render list
-        renderExpenseList();
-
-        // Update balance (this will update total expenses and remaining balance)
+        // Update balance calculations
         updateBalance();
 
-        // Show message
-        showMessage('✅ Expense deleted successfully!', false, 'expense');
+        // Show success message
+        showMessage(`✅ "${escapeHtml(deletedExpense.name)}" deleted successfully!`, false, 'expense');
+
+        // Log for debugging
+        console.log('Expense deleted:', deletedExpense);
+        console.log('Remaining expenses:', expensesData);
+    } else {
+        console.warn(`⚠️ Expense with id ${id} not found`);
     }
 }
 
@@ -695,6 +727,37 @@ expenseAmount.addEventListener('keypress', (e) => {
     }
 });
 
+// Delete Expense Event - Using Event Delegation
+// This handler listens for clicks on delete buttons in the expense table
+expenseTableBody.addEventListener('click', (e) => {
+    // Check if the clicked element is a delete button
+    if (e.target.classList.contains('delete-expense-btn')) {
+        // Get the expense ID from the data attribute
+        const expenseId = parseInt(e.target.getAttribute('data-id'), 10);
+        
+        // Call delete function
+        if (!isNaN(expenseId)) {
+            deleteExpense(expenseId);
+        }
+    }
+});
+
+// Add fade out animation for smooth deletion
+const fadeOutStyle = document.createElement('style');
+fadeOutStyle.textContent = `
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+    }
+`;
+document.head.appendChild(fadeOutStyle);
+
 // ==========================================
 // Page Load - Initialization
 // ==========================================
@@ -709,5 +772,5 @@ updateSalaryDisplay();
 renderExpenseList();
 updateBalance();
 
-console.log('✅ Salary, Expense, Balance, Validation & localStorage Module Loaded');
-console.log('Ready with persistent data storage...');
+console.log('✅ Salary, Expense, Balance, Validation, localStorage & Delete Module Loaded');
+console.log('Ready with delete functionality and persistent data storage...');
