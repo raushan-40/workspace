@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary, Expense & Balance Calculation Module
+// Salary, Expense, Balance & Validation Module
 // ==========================================
 
 // ==========================================
@@ -42,55 +42,166 @@ const currencySelector = document.getElementById('currencySelector');
 const downloadReportBtn = document.getElementById('downloadReportBtn');
 
 // ==========================================
-// Salary Module
+// Validation Module - Reusable Functions
 // ==========================================
 
 /**
- * Validates salary input
- * @param {string|number} value - The salary value to validate
+ * Checks if a value is empty
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if empty
+ */
+function isEmpty(value) {
+    return value === '' || value === null || value === undefined;
+}
+
+/**
+ * Checks if a string contains only whitespace
+ * @param {string} text - Text to check
+ * @returns {boolean} - True if only whitespace
+ */
+function isOnlyWhitespace(text) {
+    return typeof text === 'string' && text.trim().length === 0;
+}
+
+/**
+ * Checks if a value is a valid positive number
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if valid positive number
+ */
+function isValidPositiveNumber(value) {
+    const num = parseFloat(value);
+    return !isNaN(num) && num > 0;
+}
+
+/**
+ * Checks if a value is zero
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if zero
+ */
+function isZero(value) {
+    return parseFloat(value) === 0;
+}
+
+/**
+ * Checks if a value is negative
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if negative
+ */
+function isNegative(value) {
+    const num = parseFloat(value);
+    return !isNaN(num) && num < 0;
+}
+
+/**
+ * Checks if a value is a valid number (can be negative or zero)
+ * @param {*} value - Value to check
+ * @returns {boolean} - True if valid number
+ */
+function isValidNumber(value) {
+    return !isNaN(parseFloat(value)) && isFinite(value);
+}
+
+/**
+ * Validates a text field (like expense name)
+ * @param {string} text - Text to validate
+ * @param {string} fieldName - Name of the field for error message
  * @returns {object} - { isValid: boolean, message: string }
  */
-function validateSalary(value) {
+function validateTextField(text, fieldName = 'Field') {
     // Check if empty
-    if (value === '' || value === null || value === undefined) {
+    if (isEmpty(text)) {
         return {
             isValid: false,
-            message: '❌ Salary cannot be empty'
+            message: `❌ ${fieldName} cannot be empty`
         };
     }
 
-    // Convert to number
-    const salaryNum = parseFloat(value);
-
-    // Check if valid number
-    if (isNaN(salaryNum)) {
+    // Check if only whitespace
+    if (isOnlyWhitespace(text)) {
         return {
             isValid: false,
-            message: '❌ Please enter a valid number'
+            message: `❌ ${fieldName} cannot contain only spaces`
         };
     }
 
-    // Check if zero
-    if (salaryNum === 0) {
+    // Check length
+    if (text.trim().length < 2) {
         return {
             isValid: false,
-            message: '❌ Salary cannot be zero'
+            message: `❌ ${fieldName} must be at least 2 characters`
         };
     }
 
-    // Check if negative
-    if (salaryNum < 0) {
+    if (text.trim().length > 50) {
         return {
             isValid: false,
-            message: '❌ Salary cannot be negative'
+            message: `❌ ${fieldName} must not exceed 50 characters`
         };
     }
 
     return {
         isValid: true,
-        message: '✅ Salary saved successfully!'
+        message: ''
     };
 }
+
+/**
+ * Validates a numeric field (like salary or expense amount)
+ * @param {*} value - Value to validate
+ * @param {string} fieldName - Name of the field for error message
+ * @returns {object} - { isValid: boolean, message: string }
+ */
+function validateNumericField(value, fieldName = 'Amount') {
+    // Check if empty
+    if (isEmpty(value)) {
+        return {
+            isValid: false,
+            message: `❌ ${fieldName} cannot be empty`
+        };
+    }
+
+    // Check if valid number
+    if (!isValidNumber(value)) {
+        return {
+            isValid: false,
+            message: `❌ ${fieldName} must be a valid number`
+        };
+    }
+
+    // Check if negative
+    if (isNegative(value)) {
+        return {
+            isValid: false,
+            message: `❌ ${fieldName} cannot be negative`
+        };
+    }
+
+    // Check if zero
+    if (isZero(value)) {
+        return {
+            isValid: false,
+            message: `❌ ${fieldName} cannot be zero`
+        };
+    }
+
+    // Check if value is too large
+    const numValue = parseFloat(value);
+    if (numValue > 999999999) {
+        return {
+            isValid: false,
+            message: `❌ ${fieldName} is too large`
+        };
+    }
+
+    return {
+        isValid: true,
+        message: ''
+    };
+}
+
+// ==========================================
+// Message Display Module
+// ==========================================
 
 /**
  * Shows error/success message to user
@@ -162,6 +273,19 @@ function showMessage(message, isError = true, type = 'salary') {
     }
 }
 
+// ==========================================
+// Salary Module
+// ==========================================
+
+/**
+ * Validates salary input using reusable validation functions
+ * @param {string|number} value - The salary value to validate
+ * @returns {object} - { isValid: boolean, message: string }
+ */
+function validateSalary(value) {
+    return validateNumericField(value, 'Salary');
+}
+
 /**
  * Saves the salary and updates display
  */
@@ -180,7 +304,7 @@ function saveSalary() {
     salaryData.totalSalary = parseFloat(salaryValue);
 
     // Show success message
-    showMessage(validation.message, false, 'salary');
+    showMessage('✅ Salary saved successfully!', false, 'salary');
 
     // Update display
     updateSalaryDisplay();
@@ -285,66 +409,27 @@ function updateBalanceCardColor(balance) {
 // ==========================================
 
 /**
- * Validates expense inputs
+ * Validates expense inputs using reusable validation functions
  * @param {string} name - Expense name
  * @param {string|number} amount - Expense amount
  * @returns {object} - { isValid: boolean, message: string }
  */
 function validateExpense(name, amount) {
-    // Check if name is empty
-    if (name === '' || name === null || name === undefined) {
-        return {
-            isValid: false,
-            message: '❌ Expense name cannot be empty'
-        };
+    // Validate name
+    const nameValidation = validateTextField(name, 'Expense name');
+    if (!nameValidation.isValid) {
+        return nameValidation;
     }
 
-    // Check name length
-    if (name.trim().length === 0) {
-        return {
-            isValid: false,
-            message: '❌ Expense name cannot be just spaces'
-        };
-    }
-
-    // Check if amount is empty
-    if (amount === '' || amount === null || amount === undefined) {
-        return {
-            isValid: false,
-            message: '❌ Expense amount cannot be empty'
-        };
-    }
-
-    // Convert to number
-    const amountNum = parseFloat(amount);
-
-    // Check if valid number
-    if (isNaN(amountNum)) {
-        return {
-            isValid: false,
-            message: '❌ Please enter a valid amount'
-        };
-    }
-
-    // Check if zero
-    if (amountNum === 0) {
-        return {
-            isValid: false,
-            message: '❌ Expense amount cannot be zero'
-        };
-    }
-
-    // Check if negative
-    if (amountNum < 0) {
-        return {
-            isValid: false,
-            message: '❌ Expense amount cannot be negative'
-        };
+    // Validate amount
+    const amountValidation = validateNumericField(amount, 'Expense amount');
+    if (!amountValidation.isValid) {
+        return amountValidation;
     }
 
     return {
         isValid: true,
-        message: '✅ Expense added successfully!'
+        message: ''
     };
 }
 
@@ -366,8 +451,8 @@ function createExpense(name, amount) {
  * Adds a new expense
  */
 function addExpense() {
-    const name = expenseName.value.trim();
-    const amount = expenseAmount.value.trim();
+    const name = expenseName.value;
+    const amount = expenseAmount.value;
 
     // Validate inputs
     const validation = validateExpense(name, amount);
@@ -384,7 +469,7 @@ function addExpense() {
     expensesData.push(newExpense);
 
     // Show success message
-    showMessage(validation.message, false, 'expense');
+    showMessage('✅ Expense added successfully!', false, 'expense');
 
     // Render expense list
     renderExpenseList();
@@ -497,8 +582,9 @@ expenseAmount.addEventListener('keypress', (e) => {
 // Initialization
 // ==========================================
 
-console.log('✅ Salary, Expense & Balance Calculation Module Loaded');
-console.log('Ready to save salary and add expenses with real-time balance updates...');
+console.log('✅ Salary, Expense, Balance & Validation Module Loaded');
+console.log('Reusable validation functions: validateTextField(), validateNumericField()');
+console.log('Ready with enhanced validation...');
 
 // Initialize display
 updateSalaryDisplay();
