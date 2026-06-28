@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary & Expense Module Implementation
+// Salary, Expense & Balance Calculation Module
 // ==========================================
 
 // ==========================================
@@ -201,7 +201,7 @@ function updateSalaryDisplay() {
     totalSalaryDisplay.textContent = formattedSalary;
     
     // Update remaining balance
-    updateRemainingBalance();
+    updateBalance();
 }
 
 /**
@@ -213,23 +213,70 @@ function formatCurrency(amount) {
     return `$${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 }
 
+// ==========================================
+// Balance Calculation Module
+// ==========================================
+
 /**
- * Updates the remaining balance
+ * Calculates total expenses from the expenses array
+ * @returns {number} - Total of all expenses
  */
-function updateRemainingBalance() {
-    const totalExpenses = expensesData.reduce((sum, expense) => sum + expense.amount, 0);
-    const balance = salaryData.totalSalary - totalExpenses;
-    
-    const formattedBalance = formatCurrency(balance);
+function calculateTotalExpenses() {
+    return expensesData.reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+/**
+ * Calculates remaining balance
+ * Formula: Remaining Balance = Total Salary - Total Expenses
+ * @returns {number} - Remaining balance
+ */
+function calculateRemainingBalance() {
+    const totalExpenses = calculateTotalExpenses();
+    return salaryData.totalSalary - totalExpenses;
+}
+
+/**
+ * Updates all balance-related displays
+ * This is the main function called whenever balance needs updating
+ */
+function updateBalance() {
+    // Calculate values
+    const totalExpenses = calculateTotalExpenses();
+    const remainingBalance = calculateRemainingBalance();
+
+    // Format and display total expenses
+    const formattedExpenses = formatCurrency(totalExpenses);
+    totalExpensesDisplay.textContent = formattedExpenses;
+
+    // Format and display remaining balance
+    const formattedBalance = formatCurrency(remainingBalance);
     remainingBalanceDisplay.textContent = formattedBalance;
-    
-    // Change color based on balance
+
+    // Update balance card color based on value
+    updateBalanceCardColor(remainingBalance);
+
+    // Log for debugging
+    console.log('Balance updated:', {
+        totalSalary: salaryData.totalSalary,
+        totalExpenses: totalExpenses,
+        remainingBalance: remainingBalance
+    });
+}
+
+/**
+ * Updates the color of the remaining balance card based on balance value
+ * @param {number} balance - The current remaining balance
+ */
+function updateBalanceCardColor(balance) {
     if (balance < 0) {
-        remainingBalanceDisplay.style.color = '#ef4444'; // Red
-    } else if (balance < salaryData.totalSalary * 0.2) {
-        remainingBalanceDisplay.style.color = '#f59e0b'; // Yellow
+        // Red - overspent
+        remainingBalanceDisplay.style.color = '#ef4444';
+    } else if (salaryData.totalSalary > 0 && balance < salaryData.totalSalary * 0.2) {
+        // Yellow - warning (less than 20% of salary)
+        remainingBalanceDisplay.style.color = '#f59e0b';
     } else {
-        remainingBalanceDisplay.style.color = '#1f2937'; // Default
+        // Default - healthy balance
+        remainingBalanceDisplay.style.color = '#1f2937';
     }
 }
 
@@ -342,9 +389,8 @@ function addExpense() {
     // Render expense list
     renderExpenseList();
 
-    // Update summary cards
-    updateExpenseSummary();
-    updateRemainingBalance();
+    // Update balance (this will update total expenses and remaining balance)
+    updateBalance();
 
     // Clear form
     expenseForm.reset();
@@ -403,22 +449,12 @@ function deleteExpense(id) {
         // Re-render list
         renderExpenseList();
 
-        // Update summary cards
-        updateExpenseSummary();
-        updateRemainingBalance();
+        // Update balance (this will update total expenses and remaining balance)
+        updateBalance();
 
         // Show message
         showMessage('✅ Expense deleted successfully!', false, 'expense');
     }
-}
-
-/**
- * Updates the total expenses display in summary card
- */
-function updateExpenseSummary() {
-    const totalExpenses = expensesData.reduce((sum, expense) => sum + expense.amount, 0);
-    const formattedExpenses = formatCurrency(totalExpenses);
-    totalExpensesDisplay.textContent = formattedExpenses;
 }
 
 /**
@@ -461,9 +497,10 @@ expenseAmount.addEventListener('keypress', (e) => {
 // Initialization
 // ==========================================
 
-console.log('✅ Salary & Expense Module Loaded');
-console.log('Ready to save salary and add expenses...');
+console.log('✅ Salary, Expense & Balance Calculation Module Loaded');
+console.log('Ready to save salary and add expenses with real-time balance updates...');
 
 // Initialize display
 updateSalaryDisplay();
 renderExpenseList();
+updateBalance();
