@@ -213,13 +213,13 @@ This project helped me understand:
 **Raushan Kumar**
 
 - IIT Patna – B.Sc. Computer Science & Data Analytics
-- GEC Arwal – B.Tech Computer Science & Engineering
+
 
 GitHub:
-https://github.com/your-github-username
+https://github.com/raushan-40
 
 LinkedIn:
-https://www.linkedin.com/in/your-linkedin-profile
+https://www.linkedin.com/in/raushankumariitp/
 
 ---
 
